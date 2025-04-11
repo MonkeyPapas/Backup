@@ -1,9 +1,17 @@
-
 const { getToken, getTransactionDetails } = require('../services/apiService');
 
 // Función para obtener el token y luego las transacciones
 const fetchTransactionDetails = async (req, res) => {
-  const { startDate, endDate, pageNumber } = req.body;
+  // Obtener los parámetros de la URL (req.query) en lugar de req.body
+  const { startDate, endDate, pageNumber = 1 } = req.query;
+
+  // Verificar que se pasaron startDate y endDate
+  if (!startDate || !endDate) {
+    return res.status(400).json({
+      success: false,
+      message: 'startDate y endDate son requeridos.',
+    });
+  }
 
   try {
     // Obtener el token

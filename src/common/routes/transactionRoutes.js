@@ -5,6 +5,6 @@ const { fetchTransactionDetails } = require('../controllers/transactionControlle
 const router = express.Router();
 
 // Ruta para obtener las transacciones
-router.post('/data-warehouse', fetchTransactionDetails);
+router.get('/data-warehouse', fetchTransactionDetails);
 
 module.exports = router;
