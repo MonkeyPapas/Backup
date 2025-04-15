@@ -1,5 +1,5 @@
 {
-  "name": "ampi",
+  "name": "backup-monkey",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "Asistente Virtual AMPI",
+  "description": "Backup Monkey Papas",
   "dependencies": {
     "@google-cloud/tasks": "^6.0.1",
     "axios": "^1.7.9",
