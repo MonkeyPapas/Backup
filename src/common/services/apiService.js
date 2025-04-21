@@ -1,5 +1,6 @@
 // /src/services/apiService.js
 const axios = require('axios');
+const getTransactionModel = require('../models/Transaction');
 
 // Función para obtener el token
 const getToken = async () => {
@@ -85,7 +86,6 @@ const extractShopDataWithItemsAndTickets = (items) => {
   return Object.values(shopData);
 };
 
-// Función para obtener los detalles de la transacción
 const getTransactionDetails = async (token, startDate, endDate, pageNumber = 1) => {
   try {
     const response = await axios.get('https://mx-api.bistrosoft.com/api/v1/transactiondetailreport', {
@@ -99,18 +99,52 @@ const getTransactionDetails = async (token, startDate, endDate, pageNumber = 1) 
       },
     });
 
-
     if (!response.data.items || response.data.items.length === 0) {
       console.log('No se encontraron transacciones en la respuesta.');
       return [];
     }
 
     const shopData = extractShopDataWithItemsAndTickets(response.data.items);
+    
+    // Guardar en MongoDB
+    await saveTransactionsToDB(shopData);
+    
     return shopData;
   } catch (error) {
     console.error('Error al obtener los detalles de la transacción:', error.response?.data || error.message);
     throw new Error('No se pudieron obtener los detalles de la transacción');
   }
 };
+const saveTransactionsToDB = async (shopData) => {
+  try {
+    for (const shop of shopData) {
+      const Transaction = getTransactionModel(shop.shopCode);
 
-module.exports = { getToken, getTransactionDetails };
+      // Cada ticket será un documento individual en la colección del shop
+      const operations = shop.tickets.map(ticket => ({
+        updateOne: {
+          filter: { ticketNumber: ticket.ticketNumber },
+          update: {
+            $set: {
+              shopCode: shop.shopCode,
+              shop: shop.shop,
+              items: ticket.items
+            }
+          },
+          upsert: true
+        }
+      }));
+
+      const result = await Transaction.bulkWrite(operations);
+      console.log(`✅ Guardado en colección '${shop.shopCode}': 
+        ${result.upsertedCount} nuevos,
+        ${result.modifiedCount} actualizados`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ Error al guardar:', error.message);
+    throw error;
+  }
+};
+module.exports = { getToken, getTransactionDetails, saveTransactionsToDB };
