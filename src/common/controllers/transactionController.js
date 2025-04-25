@@ -9,7 +9,7 @@ const fetchTransactionDetails = async (req, res) => {
   if (!startDate || !endDate) {
     return res.status(400).json({
       success: false,
-      message: 'startDate y endDate son requeridos.',
+      message: 'startDate y endDate se requieren .',
     });
   }
 
