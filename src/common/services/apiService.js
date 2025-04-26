@@ -89,7 +89,7 @@ const extractShopDataWithItemsAndTickets = (items) => {
 const getTransactionDetails = async (token, startDate, endDate) => {
   console.log(`📆 Iniciando escaneo desde ${startDate} hasta ${endDate}`);
 
-  let pageNumber = 0;
+  let pageNumber = 0; // Empezamos desde la página 0
   let allItems = [];
   let totalFetched = 0;
 
@@ -110,33 +110,41 @@ const getTransactionDetails = async (token, startDate, endDate) => {
 
       if (!items || items.length === 0) {
         console.log(`📦 Paginación terminada. Total de items: ${totalFetched}`);
-        break;
+        break; // No hay más datos, terminamos el bucle
       }
 
-      allItems = allItems.concat(items);
-      totalFetched += items.length;
+      allItems = allItems.concat(items); // Añadimos los resultados obtenidos
+      totalFetched += items.length; // Aumentamos el total de items obtenidos
       console.log(`📄 Página ${pageNumber}: ${items.length} items`);
 
-      pageNumber++; // Siguiente página
+      pageNumber++; // Incrementamos el número de página
     } catch (error) {
       console.error(`❌ Error en la página ${pageNumber}:`, error.response?.data || error.message);
-      break;
+      // En caso de error, detenemos el proceso y no guardamos nada
+      console.log('🚫 Se detuvo el proceso debido a un error.');
+      return []; // Retornamos un array vacío indicando que no se guardó nada
     }
   }
 
   if (allItems.length === 0) {
     console.log('⚠️ No se encontraron transacciones en ninguna página.');
-    return [];
+    return []; // No se encontraron transacciones, terminamos
   }
 
   const shopData = extractShopDataWithItemsAndTickets(allItems);
 
-  // Guardar en MongoDB
-  await saveTransactionsToDB(shopData);
+  // Guardar en MongoDB solo si todo salió bien
+  try {
+    // Esto asegura que se guarden en la base de datos 'BackupMonkey'
+    await saveTransactionsToDB(shopData); 
+    console.log('✅ Datos guardados exitosamente en MongoDB.');
+  } catch (saveError) {
+    console.error('❌ Error al guardar en MongoDB:', saveError.message);
+    return []; // En caso de error al guardar, no guardamos nada
+  }
 
   return shopData;
 };
-
 
 const saveTransactionsToDB = async (shopData) => {
   try {
