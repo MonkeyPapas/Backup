@@ -18,18 +18,20 @@ exports.getShopById = async (req, res) => {
   }
 };
 
-// Obtener todos los shops
 exports.getAllShops = async (req, res) => {
   try {
-    const collections = await db.listCollections().toArray(); // Obtiene todas las colecciones
+    const dbNative = db.db;  // Accede al db nativo de MongoDB
+    const collections = await dbNative.listCollections().toArray();  // Llama al método listCollections()
+
     const shops = [];
+
     for (const collectionInfo of collections) {
-      const collection = db.collection(collectionInfo.name); // Accedemos a la colección por su nombre
-      const data = await collection.find({}).toArray();  // Obtenemos todos los documentos de esa colección
-      shops.push(...data);  // Agregamos los documentos de esa colección a la lista de shops
+      const collection = dbNative.collection(collectionInfo.name);  // Accede a cada colección por nombre
+      const data = await collection.find({}).toArray();  // Obtener los documentos
+      shops.push(...data);  // Agregar los documentos a la lista de shops
     }
 
-    res.status(200).json(shops);  // Retornamos todos los datos de todas las colecciones
+    res.status(200).json(shops);  // Devolver todos los shops encontrados
   } catch (error) {
     console.error('Error al consultar los backups:', error);
     res.status(500).json({ message: 'Error al consultar la base de datos' });
