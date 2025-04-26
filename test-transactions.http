@@ -1,3 +1,3 @@
-#GET http://localhost:3000/api/v1/data-warehouse?startDate=2023-12-01&endDate=2023-12-31&pageNumber=0
+GET http://localhost:3000/api/v1/data-warehouse?startDate=2024-02-01&endDate=2024-02-29
 
-GET http://localhost:3000/api/v1/shop/52000179
+#GET http://localhost:3000/api/v1/shops

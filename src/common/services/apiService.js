@@ -1,6 +1,8 @@
-// /src/services/apiService.js
 const axios = require('axios');
 const getTransactionModel = require('../models/Transaction');
+
+// Función para crear un retraso en la ejecución (sleep)
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Función para obtener el token
 const getToken = async () => {
@@ -86,6 +88,7 @@ const extractShopDataWithItemsAndTickets = (items) => {
   return Object.values(shopData);
 };
 
+// Función para obtener los detalles de las transacciones
 const getTransactionDetails = async (token, startDate, endDate) => {
   console.log(`📆 Iniciando escaneo desde ${startDate} hasta ${endDate}`);
 
@@ -118,11 +121,14 @@ const getTransactionDetails = async (token, startDate, endDate) => {
       console.log(`📄 Página ${pageNumber}: ${items.length} items`);
 
       pageNumber++; // Incrementamos el número de página
+
+      // Espera de 5 segundos entre cada solicitud para no exceder el límite de 12 solicitudes por minuto
+      await sleep(5000);  // 5000 ms = 5 segundos
+
     } catch (error) {
       console.error(`❌ Error en la página ${pageNumber}:`, error.response?.data || error.message);
-      // En caso de error, detenemos el proceso y no guardamos nada
       console.log('🚫 Se detuvo el proceso debido a un error.');
-      return []; // Retornamos un array vacío indicando que no se guardó nada
+      return []; // En caso de error, detenemos el proceso
     }
   }
 
@@ -146,6 +152,7 @@ const getTransactionDetails = async (token, startDate, endDate) => {
   return shopData;
 };
 
+// Función para guardar los datos en MongoDB
 const saveTransactionsToDB = async (shopData) => {
   try {
     for (const shop of shopData) {
@@ -178,4 +185,5 @@ const saveTransactionsToDB = async (shopData) => {
     throw error;
   }
 };
+
 module.exports = { getToken, getTransactionDetails, saveTransactionsToDB };
