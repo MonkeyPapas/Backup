@@ -87,6 +87,8 @@ const extractShopDataWithItemsAndTickets = (items) => {
 };
 
 const getTransactionDetails = async (token, startDate, endDate) => {
+  console.log(`📆 Iniciando escaneo desde ${startDate} hasta ${endDate}`);
+
   let pageNumber = 0;
   let allItems = [];
   let totalFetched = 0;
