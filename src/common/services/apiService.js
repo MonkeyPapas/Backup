@@ -86,35 +86,56 @@ const extractShopDataWithItemsAndTickets = (items) => {
   return Object.values(shopData);
 };
 
-const getTransactionDetails = async (token, startDate, endDate, pageNumber = 1) => {
-  try {
-    const response = await axios.get('https://mx-api.bistrosoft.com/api/v1/transactiondetailreport', {
-      params: {
-        startDate,
-        endDate,
-        pageNumber,
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+const getTransactionDetails = async (token, startDate, endDate) => {
+  let pageNumber = 0;
+  let allItems = [];
+  let totalFetched = 0;
 
-    if (!response.data.items || response.data.items.length === 0) {
-      console.log('No se encontraron transacciones en la respuesta.');
-      return [];
+  while (true) {
+    try {
+      const response = await axios.get('https://mx-api.bistrosoft.com/api/v1/transactiondetailreport', {
+        params: {
+          startDate,
+          endDate,
+          pageNumber,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const items = response.data.items;
+
+      if (!items || items.length === 0) {
+        console.log(`📦 Paginación terminada. Total de items: ${totalFetched}`);
+        break;
+      }
+
+      allItems = allItems.concat(items);
+      totalFetched += items.length;
+      console.log(`📄 Página ${pageNumber}: ${items.length} items`);
+
+      pageNumber++; // Siguiente página
+    } catch (error) {
+      console.error(`❌ Error en la página ${pageNumber}:`, error.response?.data || error.message);
+      break;
     }
-
-    const shopData = extractShopDataWithItemsAndTickets(response.data.items);
-    
-    // Guardar en MongoDB
-    await saveTransactionsToDB(shopData);
-    
-    return shopData;
-  } catch (error) {
-    console.error('Error al obtener los detalles de la transacción:', error.response?.data || error.message);
-    throw new Error('No se pudieron obtener los detalles de la transacción');
   }
+
+  if (allItems.length === 0) {
+    console.log('⚠️ No se encontraron transacciones en ninguna página.');
+    return [];
+  }
+
+  const shopData = extractShopDataWithItemsAndTickets(allItems);
+
+  // Guardar en MongoDB
+  await saveTransactionsToDB(shopData);
+
+  return shopData;
 };
+
+
 const saveTransactionsToDB = async (shopData) => {
   try {
     for (const shop of shopData) {
