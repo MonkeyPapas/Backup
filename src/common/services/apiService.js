@@ -95,6 +95,7 @@ const getTransactionDetails = async (token, startDate, endDate) => {
   let pageNumber = 0; // Empezamos desde la página 0
   let allItems = [];
   let totalFetched = 0;
+  let requestCount = 0; // Contador de requests
 
   while (true) {
     try {
@@ -113,40 +114,45 @@ const getTransactionDetails = async (token, startDate, endDate) => {
 
       if (!items || items.length === 0) {
         console.log(`📦 Paginación terminada. Total de items: ${totalFetched}`);
-        break; // No hay más datos, terminamos el bucle
+        break;
       }
 
-      allItems = allItems.concat(items); // Añadimos los resultados obtenidos
-      totalFetched += items.length; // Aumentamos el total de items obtenidos
+      allItems = allItems.concat(items);
+      totalFetched += items.length;
       console.log(`📄 Página ${pageNumber}: ${items.length} items`);
 
-      pageNumber++; // Incrementamos el número de página
+      pageNumber++;
+      requestCount++;
 
-      // Espera de 5 segundos entre cada solicitud para no exceder el límite de 12 solicitudes por minuto
-      await sleep(5000);  // 5000 ms = 5 segundos
+      // Esperar 5 segundos después de cada request
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // Cada 12 requests, pausar 60 segundos adicionales
+      if (requestCount % 12 === 0) {
+        console.log('🛑 Pausando 60 segundos para respetar el límite de 12 requests/minuto...');
+        await new Promise(resolve => setTimeout(resolve, 60000)); // 60 segundos
+      }
 
     } catch (error) {
       console.error(`❌ Error en la página ${pageNumber}:`, error.response?.data || error.message);
       console.log('🚫 Se detuvo el proceso debido a un error.');
-      return []; // En caso de error, detenemos el proceso
+      return [];
     }
   }
 
   if (allItems.length === 0) {
     console.log('⚠️ No se encontraron transacciones en ninguna página.');
-    return []; // No se encontraron transacciones, terminamos
+    return [];
   }
 
   const shopData = extractShopDataWithItemsAndTickets(allItems);
 
-  // Guardar en MongoDB solo si todo salió bien
   try {
-    // Esto asegura que se guarden en la base de datos 'BackupMonkey'
-    await saveTransactionsToDB(shopData); 
+    await saveTransactionsToDB(shopData);
     console.log('✅ Datos guardados exitosamente en MongoDB.');
   } catch (saveError) {
     console.error('❌ Error al guardar en MongoDB:', saveError.message);
-    return []; // En caso de error al guardar, no guardamos nada
+    return [];
   }
 
   return shopData;
