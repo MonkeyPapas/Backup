@@ -1,8 +1,6 @@
 const axios = require('axios');
 const getTransactionModel = require('../models/Transaction');
 
-// Función para crear un retraso en la ejecución (sleep)
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Función para obtener el token
 const getToken = async () => {
@@ -92,22 +90,16 @@ const extractShopDataWithItemsAndTickets = (items) => {
 const getTransactionDetails = async (token, startDate, endDate) => {
   console.log(`📆 Iniciando escaneo desde ${startDate} hasta ${endDate}`);
 
-  let pageNumber = 0; // Empezamos desde la página 0
+  let pageNumber = 0;
   let allItems = [];
   let totalFetched = 0;
-  let requestCount = 0; // Contador de requests
+  let requestCount = 0;
 
   while (true) {
     try {
       const response = await axios.get('https://mx-api.bistrosoft.com/api/v1/transactiondetailreport', {
-        params: {
-          startDate,
-          endDate,
-          pageNumber,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        params: { startDate, endDate, pageNumber },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const items = response.data.items;
@@ -124,13 +116,13 @@ const getTransactionDetails = async (token, startDate, endDate) => {
       pageNumber++;
       requestCount++;
 
-      // Esperar 5 segundos después de cada request
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Esperar 1 segundo después de cada request
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Cada 12 requests, pausar 60 segundos adicionales
       if (requestCount % 12 === 0) {
         console.log('🛑 Pausando 60 segundos para respetar el límite de 12 requests/minuto...');
-        await new Promise(resolve => setTimeout(resolve, 60000)); // 60 segundos
+        await new Promise(resolve => setTimeout(resolve, 60000));
       }
 
     } catch (error) {
@@ -157,6 +149,7 @@ const getTransactionDetails = async (token, startDate, endDate) => {
 
   return shopData;
 };
+
 
 // Función para guardar los datos en MongoDB
 const saveTransactionsToDB = async (shopData) => {
