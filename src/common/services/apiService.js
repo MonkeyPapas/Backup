@@ -1,6 +1,6 @@
 const axios = require('axios');
 const getTransactionModel = require('../models/Transaction');
-
+const { connectToDatabase } = require('../database/mongoConfig');
 
 // Función para obtener el token
 const getToken = async () => {
@@ -87,7 +87,7 @@ const extractShopDataWithItemsAndTickets = (items) => {
 };
 
 // Función para obtener los detalles de las transacciones
-const getTransactionDetails = async (token, startDate, endDate) => {
+const getTransactionDetails = async (token, startDate, endDate, databaseYear) => {
   console.log(`📆 Iniciando escaneo desde ${startDate} hasta ${endDate}`);
 
   let pageNumber = 0;
@@ -140,7 +140,10 @@ const getTransactionDetails = async (token, startDate, endDate) => {
   const shopData = extractShopDataWithItemsAndTickets(allItems);
 
   try {
-    await saveTransactionsToDB(shopData);
+    // Aseguramos la conexión a la base de datos correcta antes de guardar
+    await connectToDatabase(databaseYear);
+
+    await saveTransactionsToDB(shopData, databaseYear);
     console.log('✅ Datos guardados exitosamente en MongoDB.');
   } catch (saveError) {
     console.error('❌ Error al guardar en MongoDB:', saveError.message);
@@ -150,9 +153,8 @@ const getTransactionDetails = async (token, startDate, endDate) => {
   return shopData;
 };
 
-
 // Función para guardar los datos en MongoDB
-const saveTransactionsToDB = async (shopData) => {
+const saveTransactionsToDB = async (shopData, databaseYear) => {
   try {
     for (const shop of shopData) {
       const Transaction = getTransactionModel(shop.shopCode);
