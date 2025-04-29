@@ -39,17 +39,19 @@ exports.getShopById = async (req, res) => {
   }
 };
 
-
 exports.getAllShops = async (req, res) => {
   try {
-    const dbNative = db.db;  // Accede al db nativo de MongoDB
-    const collections = await dbNative.listCollections().toArray();  // Llama al método listCollections()
+    const databaseName = 'BackupMonkey';  // Asegúrate de usar la base de datos correcta
+    await connectToDatabase(databaseName);  // Conecta a la base de datos BackupMonkey
+
+    const dbNative = mongoose.connection.db;  // Accede al db nativo de MongoDB
+    const collections = await dbNative.listCollections().toArray();  // Lista todas las colecciones
 
     const shops = [];
 
     for (const collectionInfo of collections) {
       const collection = dbNative.collection(collectionInfo.name);  // Accede a cada colección por nombre
-      const data = await collection.find({}).toArray();  // Obtener los documentos
+      const data = await collection.find({}).toArray();  // Obtener los documentos de la colección
       shops.push(...data);  // Agregar los documentos a la lista de shops
     }
 
