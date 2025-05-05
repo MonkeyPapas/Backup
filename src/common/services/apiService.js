@@ -159,32 +159,62 @@ const saveTransactionsToDB = async (shopData, databaseYear) => {
     for (const shop of shopData) {
       const Transaction = getTransactionModel(shop.shopCode);
 
-      // Cada ticket será un documento individual en la colección del shop
-      const operations = shop.tickets.map(ticket => ({
-        updateOne: {
-          filter: { ticketNumber: ticket.ticketNumber },
-          update: {
-            $set: {
-              shopCode: shop.shopCode,
-              shop: shop.shop,
-              items: ticket.items
-            }
-          },
-          upsert: true
-        }
-      }));
+      let inserted = 0;
+      let updated = 0;
+      let failed = 0;
 
-      const result = await Transaction.bulkWrite(operations);
-      console.log(`✅ Guardado en colección '${shop.shopCode}': 
-        ${result.upsertedCount} nuevos,
-        ${result.modifiedCount} actualizados`);
+      for (const ticket of shop.tickets) {
+        try {
+          // ✅ Asegurar que items sea un array
+          const items = Array.isArray(ticket.items)
+            ? ticket.items
+            : ticket.items ? [ticket.items] : [];
+
+          // ✅ Sanitizar campos numéricos (evita errores con "N/A", null, etc.)
+          const sanitizedItems = items.map(item => ({
+            ...item,
+            quantity: isNaN(item.quantity) ? null : Number(item.quantity),
+            amount: isNaN(item.amount) ? null : Number(item.amount),
+            dinnersQty: isNaN(item.dinnersQty) ? null : Number(item.dinnersQty),
+            unitPrice: isNaN(item.unitPrice) ? null : Number(item.unitPrice),
+            vat: isNaN(item.vat) ? null : Number(item.vat),
+            unitCost: isNaN(item.unitCost) ? null : Number(item.unitCost),
+            totalCost: isNaN(item.totalCost) ? null : Number(item.totalCost),
+          }));
+
+          // ✅ Guardar usando upsert
+          const result = await Transaction.updateOne(
+            { ticketNumber: ticket.ticketNumber },
+            {
+              $set: {
+                shopCode: shop.shopCode,
+                shop: shop.shop,
+                items: sanitizedItems,
+              }
+            },
+            { upsert: true }
+          );
+
+          if (result.upsertedCount > 0) inserted++;
+          else if (result.modifiedCount > 0) updated++;
+        } catch (err) {
+          failed++;
+          console.error(`❌ Error al guardar ticket ${ticket.ticketNumber} en ${shop.shopCode}: ${err.message}`);
+        }
+      }
+
+      console.log(`✅ Resultados en colección '${shop.shopCode}':
+  ${inserted} nuevos,
+  ${updated} actualizados,
+  ${failed} fallidos`);
     }
 
     return true;
   } catch (error) {
-    console.error('❌ Error al guardar:', error.message);
+    console.error('❌ Error general al guardar:', error.message);
     throw error;
   }
 };
+
 
 module.exports = { getToken, getTransactionDetails, saveTransactionsToDB };
