@@ -1,24 +1,21 @@
 const mongoose = require('mongoose');
 
-let isConnected = false; // Variable para controlar si ya está conectado
-
 // Función para conectar a MongoDB según el año de la base de datos
 const connectToDatabase = async (databaseYear) => {
-  if (isConnected) {
-    console.log(`🌐 Usando la conexión existente a MongoDB - Base de datos: ${databaseYear}`);
-    return;  // Si ya estamos conectados, no volvemos a conectar
-  }
-
   try {
-    // Concatenamos el nombre de la base de datos a la URI
+    // Cierra cualquier conexión previa (importante si se reintenta)
+    await mongoose.disconnect();
+
+    // Concatena el nombre de la base de datos a la URI base
     const MONGO_URI = process.env.MONGO_URI + databaseYear;
 
-    // Conectar a MongoDB con la URI completa
+    // Conectar a MongoDB
     await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,  // Opciones recomendadas de conexión
-      useUnifiedTopology: true
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      retryWrites: true, // Activa reintentos automáticos en caso de cambios de primario
     });
-    isConnected = true; // Marcamos como conectado
+
     console.log(`✅ Conectado a MongoDB - Base de datos: ${databaseYear}`);
   } catch (error) {
     console.error(`❌ Error conectando a MongoDB - ${databaseYear}:`, error);
@@ -27,4 +24,3 @@ const connectToDatabase = async (databaseYear) => {
 };
 
 module.exports = { connectToDatabase };
-
