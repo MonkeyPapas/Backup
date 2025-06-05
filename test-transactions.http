@@ -6,5 +6,5 @@
 
 
 
-GET http://localhost:3000/api/v1/promos?year=2025
+GET http://localhost:3000/api/v1/promos?year=2025&page=17&limit=5
 

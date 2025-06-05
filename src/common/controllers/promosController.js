@@ -3,7 +3,7 @@ const { connectToDatabase } = require('../database/mongoConfig');
 const getModelForShop = require('../models/Transaction');
 
 const getAllPromos = async (req, res) => {
-  const { year } = req.query;
+  const { year, page = 1, limit = 5 } = req.query;
 
   if (!year) {
     return res.status(400).json({ message: 'Debe enviar el parámetro year' });
@@ -12,7 +12,6 @@ const getAllPromos = async (req, res) => {
   try {
     await connectToDatabase(year);
 
-    // Esperar conexión activa
     if (mongoose.connection.readyState !== 1) {
       await new Promise(resolve => mongoose.connection.once('open', resolve));
     }
@@ -22,11 +21,19 @@ const getAllPromos = async (req, res) => {
 
     const collections = await db.listCollections().toArray();
     const shopCodes = collections.map(c => c.name);
-    const categories = ['Promos Lunes', 'Promos Martes', 'Promos Miercoles'];
+    const totalShops = shopCodes.length;
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+    const totalPages = Math.ceil(totalShops / parsedLimit);
 
+    const startIndex = (parsedPage - 1) * parsedLimit;
+    const endIndex = startIndex + parsedLimit;
+    const shopCodesSlice = shopCodes.slice(startIndex, endIndex);
+
+    const categories = ['Promos Lunes', 'Promos Martes', 'Promos Miercoles'];
     const results = [];
 
-    for (const shopCode of shopCodes) {
+    for (const shopCode of shopCodesSlice) {
       const ShopModel = getModelForShop(shopCode);
 
       const tickets = await ShopModel.find({
@@ -43,7 +50,10 @@ const getAllPromos = async (req, res) => {
 
         matchingItems.forEach(item => {
           promos.push({
-            ...item.toObject(),
+            product: item.product,
+            category: item.category,
+            amount: item.amount,
+            date: item.date,
             shopCode: ticket.shopCode || shopCode
           });
         });
@@ -57,11 +67,18 @@ const getAllPromos = async (req, res) => {
       }
     }
 
-    return res.status(200).json(results);
+    return res.status(200).json({
+      currentPage: parsedPage,
+      totalPages,
+      limit: parsedLimit,
+      totalShops,
+      results
+    });
 
   } catch (error) {
     console.error('Error fetching promos:', error);
     res.status(500).json({ message: 'Error al consultar las promociones' });
   }
 };
-module.exports = getAllPromos; 
+
+module.exports = getAllPromos;
