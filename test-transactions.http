@@ -1,6 +1,10 @@
 
-GET http://localhost:3000/api/v1/data?startDate=2025-04-16&endDate=2025-04-17&databaseYear=2025
+# GET http://localhost:3000/api/v1/data?startDate=2025-04-16&endDate=2025-04-17&databaseYear=2025
 
 
 # GET http://localhost:3000/api/v1/shops
+
+
+
+GET http://localhost:3000/api/v1/promos?year=2025
 
