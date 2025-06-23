@@ -4,6 +4,7 @@ require('../common/database/mongoConfig');
 const transactionRoutes = require('./routes/transactionRoutes');
 const backupRoutes= require('./routes/backupRoutes')
 const promosRoutes = require('./routes/promos');
+const ticketsRoutes = require('./routes/ticketsRoutes');
 
 
 const cors = require('cors');
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1', transactionRoutes);
 app.use('/api/v1', backupRoutes);
 app.use('/api/v1', promosRoutes);
+app.use('/api/v1', ticketsRoutes);
 
 module.exports = app;
 
