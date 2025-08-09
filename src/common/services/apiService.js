@@ -119,8 +119,8 @@ const getTransactionDetails = async (token, startDate, endDate, databaseYear) =>
       // Esperar 1 segundo después de cada request
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Cada 12 requests, pausar 60 segundos adicionales
-      if (requestCount % 12 === 0) {
+      // Cada 40 requests, pausar 60 segundos adicionales
+      if (requestCount % 40 === 0) {
         console.log('🛑 Pausando 60 segundos para respetar el límite de 12 requests/minuto...');
         await new Promise(resolve => setTimeout(resolve, 60000));
       }
