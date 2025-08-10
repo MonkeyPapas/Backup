@@ -87,9 +87,8 @@ const extractShopDataWithItemsAndTickets = (items) => {
 };
 
 // Función para obtener los detalles de las transacciones
-// Función para obtener los detalles de las transacciones (POST con body)
 const getTransactionDetails = async (token, startDate, endDate, databaseYear) => {
-  console.log(`📆 Iniciando escaneo desde ${startDate} hasta ${endDate} - Año: ${databaseYear}`);
+  console.log(`📆 Iniciando escaneo desde ${startDate} hasta ${endDate}`);
 
   let pageNumber = 0;
   let allItems = [];
@@ -98,21 +97,10 @@ const getTransactionDetails = async (token, startDate, endDate, databaseYear) =>
 
   while (true) {
     try {
-      const response = await axios.post(
-        'https://mx-api.bistrosoft.com/api/v1/transactiondetailreport',
-        {
-          startDate,
-          endDate,
-          pageNumber,
-          databaseYear 
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const response = await axios.get('https://mx-api.bistrosoft.com/api/v1/transactiondetailreport', {
+        params: { startDate, endDate, pageNumber },
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       const items = response.data.items;
 
@@ -152,7 +140,9 @@ const getTransactionDetails = async (token, startDate, endDate, databaseYear) =>
   const shopData = extractShopDataWithItemsAndTickets(allItems);
 
   try {
+    // Aseguramos la conexión a la base de datos correcta antes de guardar
     await connectToDatabase(databaseYear);
+
     await saveTransactionsToDB(shopData, databaseYear);
     console.log('✅ Datos guardados exitosamente en MongoDB.');
   } catch (saveError) {
@@ -162,3 +152,69 @@ const getTransactionDetails = async (token, startDate, endDate, databaseYear) =>
 
   return shopData;
 };
+
+// Función para guardar los datos en MongoDB
+const saveTransactionsToDB = async (shopData, databaseYear) => {
+  try {
+    for (const shop of shopData) {
+      const Transaction = getTransactionModel(shop.shopCode);
+
+      let inserted = 0;
+      let updated = 0;
+      let failed = 0;
+
+      for (const ticket of shop.tickets) {
+        try {
+          // ✅ Asegurar que items sea un array
+          const items = Array.isArray(ticket.items)
+            ? ticket.items
+            : ticket.items ? [ticket.items] : [];
+
+          // ✅ Sanitizar campos numéricos (evita errores con "N/A", null, etc.)
+          const sanitizedItems = items.map(item => ({
+            ...item,
+            quantity: isNaN(item.quantity) ? null : Number(item.quantity),
+            amount: isNaN(item.amount) ? null : Number(item.amount),
+            dinnersQty: isNaN(item.dinnersQty) ? null : Number(item.dinnersQty),
+            unitPrice: isNaN(item.unitPrice) ? null : Number(item.unitPrice),
+            vat: isNaN(item.vat) ? null : Number(item.vat),
+            unitCost: isNaN(item.unitCost) ? null : Number(item.unitCost),
+            totalCost: isNaN(item.totalCost) ? null : Number(item.totalCost),
+          }));
+
+          // ✅ Guardar usando upsert
+          const result = await Transaction.updateOne(
+            { ticketNumber: ticket.ticketNumber },
+            {
+              $set: {
+                shopCode: shop.shopCode,
+                shop: shop.shop,
+                items: sanitizedItems,
+              }
+            },
+            { upsert: true }
+          );
+
+          if (result.upsertedCount > 0) inserted++;
+          else if (result.modifiedCount > 0) updated++;
+        } catch (err) {
+          failed++;
+          console.error(`❌ Error al guardar ticket ${ticket.ticketNumber} en ${shop.shopCode}: ${err.message}`);
+        }
+      }
+
+      console.log(`✅ Resultados en colección '${shop.shopCode}':
+  ${inserted} nuevos,
+  ${updated} actualizados,
+  ${failed} fallidos`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ Error general al guardar:', error.message);
+    throw error;
+  }
+};
+
+
+module.exports = { getToken, getTransactionDetails, saveTransactionsToDB };

@@ -1,9 +1,9 @@
 const { getToken, getTransactionDetails } = require('../services/apiService');
 
 const fetchTransactionDetails = async (req, res) => {
-  const { startDate, endDate, databaseYear } = req.query; // Tomamos el parámetro `databaseYear` de la URL
+  const { startDate, endDate, databaseYear } = req.body; // 📌 Ahora los toma del body
 
-  // Verificar que se pasaron startDate, endDate y databaseYear
+  // Validar que se pasaron startDate, endDate y databaseYear
   if (!startDate || !endDate || !databaseYear) {
     return res.status(400).json({
       success: false,
@@ -12,19 +12,25 @@ const fetchTransactionDetails = async (req, res) => {
   }
 
   try {
-    // Obtener el token
+    // Obtener token de la API
     const tokenData = await getToken();
     const token = tokenData.token;
 
-    // Obtener los detalles de las transacciones con paginación automática
-    const transactionData = await getTransactionDetails(token, startDate, endDate, databaseYear);
+    // Llamar a la función que obtiene los datos con POST y paginación
+    const transactionData = await getTransactionDetails(
+      token,
+      startDate,
+      endDate,
+      databaseYear
+    );
 
-    // Retornar los detalles de las transacciones
+    // Respuesta OK
     res.status(200).json({
       success: true,
       data: transactionData,
     });
   } catch (error) {
+    // Manejo de errores
     res.status(500).json({
       success: false,
       message: error.message,
