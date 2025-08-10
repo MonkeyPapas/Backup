@@ -97,7 +97,7 @@ const getTransactionDetails = async (token, startDate, endDate, databaseYear) =>
 
   while (true) {
     try {
-      const response = await axios.get('https://mx-api.bistrosoft.com/api/v1/transactiondetailreport', {
+      const response = await axios.post('https://mx-api.bistrosoft.com/api/v1/transactiondetailreport', {
         params: { startDate, endDate, pageNumber },
         headers: { Authorization: `Bearer ${token}` },
       });
